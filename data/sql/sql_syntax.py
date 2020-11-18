@@ -69,73 +69,7 @@ class SqlSyntax():
         self.verbose = verbose
         self._db_url = db_url
         self._engine = create_engine(self._db_url, echo=self.verbose)
-        self.nn_params_table = self._initiate_nn_table_schema()
-
-    # TODO: Implement further bot database schema...
-    # TODO: DO we need bot config table?
-    @staticmethod
-    def _initiate_bot_config_table_schema():
-        metadata = MetaData()
-        table = Table('bot_configs', metadata,
-                      Column('ID', Integer, nullable=False, primary_key=True),
-                      Column('username', String(30), nullable=False),
-                      Column('api_key', String(200), nullable=False),
-                      Column('secret', String(200), nullable=False),
-                      Column('model_name', String(200), nullable=False),
-                      Column('market', String(30), nullable=False),
-                      Column('exchange', String(30), nullable=False)
-                      )
-        return table
-
-    # TODO: do we need bot stratedy table?
-    @staticmethod
-    def _initiate_bot_strategies_table_schema():
-        metadata = MetaData()
-        table = Table('bot_strategies', metadata,
-                      Column('ID', Integer, nullable=False, primary_key=True),
-                      Column('diffBuy', Float, nullable=False),
-                      Column('diffSell', Float, nullable=False),
-                      Column('stepBuy', Float, nullable=False),
-                      Column('buy_penalty_next_buy', Float, nullable=False)
-                      )
-        return table
-
-    # TODO: do we need bot table?
-    @staticmethod
-    def _initiate_bots_table_schema():
-        metadata = MetaData()
-        table = Table('bots', metadata,
-                      Column('ID', Integer, nullable=False, primary_key=True),
-                      Column('user_id', String(30), nullable=False),
-                      Column('bot_name', String(30), nullable=False),
-                      Column('config', CorrectedBinary, nullable=False),
-                      Column('strategy', CorrectedBinary, nullable=False)
-                      )
-        return table
-
-    @staticmethod
-    def _initiate_nn_table_schema():
-        metadata = MetaData()
-        table = Table('models', metadata,
-                      Column('ID', Integer, nullable=False, primary_key=True),
-                      Column('user_id', String(30), nullable=False),
-                      Column('train_path', String(400), nullable=False),
-                      Column('test_path', String(400), nullable=False),
-                      Column('features', CorrectedBinary, nullable=False),
-                      Column('epoch', Integer, nullable=False),
-                      Column('model_path', String(200), nullable=False, unique=True),
-                      Column('train_metrics', CorrectedBinary, nullable=False),
-                      Column('test_metrics', CorrectedBinary, nullable=False),
-                      Column('features_params', CorrectedBinary, nullable=False),
-                      Column('features_y_var', CorrectedBinary, nullable=False),
-                      Column('n_layers', CorrectedBinary, nullable=False),
-                      Column('N_limits', Integer, nullable=False),
-                      Column('up_limit', Float, nullable=False),
-                      Column('down_limit', Float, nullable=False),
-                      Column('window', Integer, nullable=False),
-                      )
-        return table
-
+        
     @staticmethod
     def initiate_market_minutes_table(table_name):
         metadata = MetaData()
@@ -188,20 +122,6 @@ class SqlSyntax():
         metadata.create_all(create_engine(self._db_url, echo=self.verbose))
         return table
 
-    def create_market_order_book_table(self, table_name):
-        """
-        Create market order books table
-        :param table_name: [str] Market table name eg. BTC_USDT_minutes
-        """
-        metadata = MetaData()
-        table = Table(table_name, metadata,
-                      Column('order_date', String(30), nullable=False, primary_key=True),
-                      Column('asks', CorrectedBinary, nullable=False),
-                      Column('bids', CorrectedBinary, nullable=False)
-                      )
-        metadata.create_all(create_engine(self._db_url, echo=self.verbose))
-        return table
-
     def insert(self, table, values, conflict_method='on_duplicate_ignore'):
         """
         Insert many values into a specific table.
@@ -234,55 +154,6 @@ class SqlSyntax():
                                   values)
         return result.rowcount
 
-    def select_raw_dist_asc_last(self, table, number_of_rows, where_condition=None):
-        """
-        Selects non duplicated last /n/ rows from raw database with ascending order
-        :param table: [sqlalchemy.Table] Reference for a specific Table
-        :param number_of_rows: [int] Number of rows to SELECT from Database
-        :return: [list of rows[sets]] List containing each SELECTed row as a set()
-        """
-        if where_condition is None:
-            sub_query = select([table.c.trade_date.distinct().label('trade_date'),
-                                table.c.price.label('price'),
-                                table.c.quantity.label('quantity'),
-                                table.c.side.label('side'),
-                                table.c.trade_ID.label('trade_ID')]).order_by(table.c.trade_ID.desc()).limit(
-                number_of_rows)
-        else:
-            sub_query = select([table.c.trade_date.distinct().label('trade_date'),
-                                table.c.price.label('price'),
-                                table.c.quantity.label('quantity'),
-                                table.c.side.label('side'),
-                                table.c.trade_ID.label('trade_ID')]).where(
-                table.c.trade_ID <= where_condition).order_by(table.c.trade_ID.desc()).limit(
-                number_of_rows)
-        query = select([sub_query.c.trade_date,
-                        sub_query.c.price,
-                        sub_query.c.quantity,
-                        sub_query.c.side,
-                        sub_query.c.trade_ID]).order_by(sub_query.c.trade_ID.asc())
-        with self._engine.begin() as conn:
-            result = conn.execute(query)
-            results = [row for row in result]
-        return results
-
-    def select_raw_dist_asc_last_orderbooks(self, table, number_of_rows):
-        """
-        Selects non duplicated last /n/ rows from raw database with ascending order
-        :param table: [sqlalchemy.Table] Reference for a specific Table
-        :param number_of_rows: [int] Number of rows to SELECT from Database
-        :return: [list of rows[sets]] List containing each SELECTed row as a set()
-        """
-        sub_query = select([table.c.order_date.distinct().label('order_date'),
-                            table.c.asks.label('asks'),
-                            table.c.bids.label('bids')]).order_by(table.c.order_date.desc()).limit(number_of_rows)
-        query = select([sub_query.c.order_date,
-                        sub_query.c.asks,
-                        sub_query.c.bids]).order_by(sub_query.c.order_date.asc())
-        with self._engine.begin() as conn:
-            result = conn.execute(query)
-            rows = result.fetchall()
-        return [(row[0], row[1].decode("utf-8"), row[2].decode("utf-8")) for row in rows]
 
     def select_min_last_data(self, table, number_of_rows):
         """
@@ -392,23 +263,4 @@ class SqlSyntax():
             result = conn.execute(query)
             results = [row for row in result]
         return results
-
-    def select_nn_params(self, classifier_path, param):
-        """
-        SELECT Neural Network parameters from Database (one DB row at a time)
-        :param classifier_path: [str] Patch to NN model
-        :param param: [str] DB column name to SELECT
-        :return: [str] Converted value from database
-        """
-        query = select([self.nn_params_table.c[param]]).where(self.nn_params_table.c.model_path == classifier_path)
-        with self._engine.begin() as conn:
-            result = conn.execute(query)
-            row = result.fetchone()
-        if 'bytes' in str(type(row[0])):
-            return row[0].decode("utf-8")  # type(row[0]) == bytes without encoding
-        else:
-            return row[0]
-    
-
-
 
