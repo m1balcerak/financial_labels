@@ -1,4 +1,4 @@
-# make sure your PYTHONPATH points out to this repository
+# make sure your PYTHONPATH points to this repository
 
 # enter 'bin' directory where the visualisation program is
 cd bin
