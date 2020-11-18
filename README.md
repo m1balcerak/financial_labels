@@ -1,4 +1,4 @@
-# labels
+# init
 cd bin
 
 # for local extrema label visualisation run:
