@@ -1,4 +1,6 @@
-# init
+# make sure your PYTHONPATH points out to this repository
+
+# enter 'bin' directory where the visualisation program is
 cd bin
 
 # for local extrema label visualisation run:
