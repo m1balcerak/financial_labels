@@ -1,4 +1,4 @@
-# enter 'bin' directory with the visualisation scrip
+# enter 'bin' directory with the visualisation script
 cd bin
 
 # for local extrema label visualisation run:
